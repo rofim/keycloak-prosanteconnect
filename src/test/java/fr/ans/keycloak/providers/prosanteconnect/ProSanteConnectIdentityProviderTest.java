@@ -133,6 +133,17 @@ class ProSanteConnectIdentityProviderTest {
     }
 
     @Test
+    void should_create_authorization_url_with_eidas2_as_acr_values_query_param_when_selected_in_admin_interface() {
+      config.getConfig().put(EidasLevel.EIDAS_LEVEL_PROPERTY_NAME, "eidas2");
+      var request = givenAuthenticationRequest(session);
+
+      var authorizationUrl = provider.createAuthorizationUrl(request).build();
+      var queryParams = TestUtils.uriQueryStringToMap(authorizationUrl);
+
+      assertThat(queryParams).containsEntry("acr_values", EidasLevel.EIDAS2.toString());
+    }
+
+    @Test
     void should_create_authorization_url_with_nonce_query_param_having_exactly_64_chars() {
       var request = givenAuthenticationRequest(session);
 
@@ -366,6 +377,41 @@ class ProSanteConnectIdentityProviderTest {
     }*/
 
     @Test
+    void should_accept_eidas2_acr_claim_when_eidas1_is_expected() {
+      var kid = "ECDSA-KID";
+      var opaqueAccessToken = "2b3ea2e8-2d11-49a4-a369-5fb98d9d5315";
+      var jweIdTokenWithEidas2 = givenAnRSAOAEPJWE(
+          rsaKey,
+          givenAnECDSASignedJWTWithRegisteredKidInJWKS(kid, PSC_EIDAS2_JWT, publicKeysStore)
+      );
+
+      var tokenEndpointResponse = generateTokenEndpointResponse(opaqueAccessToken, jweIdTokenWithEidas2);
+      var brokeredIdentityContext = provider.getFederatedIdentity(tokenEndpointResponse);
+
+      assertThat(brokeredIdentityContext).isNotNull();
+      assertThat(brokeredIdentityContext.getId()).isEqualTo("fakeSub");
+      assertThat(brokeredIdentityContext.getEmail()).isEqualTo("john.doe@gmail.com");
+    }
+
+    @Test
+    void should_throw_exception_when_id_token_acr_claim_is_lower_than_the_selected_eidas_level_from_admin_interface() {
+      config.getConfig().put(EidasLevel.EIDAS_LEVEL_PROPERTY_NAME, "eidas2");
+
+      var kid = "ECDSA-KID";
+      var opaqueAccessToken = "2b3ea2e8-2d11-49a4-a369-5fb98d9d5315";
+      var jweIdTokenWithEidas1 = givenAnRSAOAEPJWE(
+          rsaKey,
+          givenAnECDSASignedJWTWithRegisteredKidInJWKS(kid, EIDAS1_JWT, publicKeysStore)
+      );
+
+      var tokenEndpointResponse = generateTokenEndpointResponse(opaqueAccessToken, jweIdTokenWithEidas1);
+
+      assertThatThrownBy(() -> provider.getFederatedIdentity(tokenEndpointResponse))
+          .isInstanceOf(KeycloakPscRuntimeException.class)
+          .hasMessage("The returned eIDAS level is insufficient: expected eidas2, got eidas1");
+    }
+
+    @Test
     void should_eidas1_when_id_token_does_not_contains_acr_claim() {
       var kid = "ECDSA-KID";
       var opaqueAccessToken = "2b3ea2e8-2d11-49a4-a369-5fb98d9d5315";
@@ -398,7 +444,7 @@ class ProSanteConnectIdentityProviderTest {
 
       assertThatThrownBy(() -> provider.getFederatedIdentity(tokenEndpointResponse))
           .isInstanceOf(KeycloakPscRuntimeException.class)
-          .hasMessage("The returned eIDAS level is not supported");
+          .hasMessage("The returned eIDAS level is not supported: eidas3");
     }
     
     @Test

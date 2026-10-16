@@ -24,13 +24,18 @@
 package fr.ans.keycloak.providers.prosanteconnect;
 
 public enum EidasLevel {
-  EIDAS1;
+  EIDAS1,
+  EIDAS2;
 
   public static final String EIDAS_LEVEL_PROPERTY_NAME = "eidas_values";
 
   @Override
   public String toString() {
     return name().toLowerCase();
+  }
+
+  public boolean satisfies(EidasLevel expectedEidasLevel) {
+    return compareTo(expectedEidasLevel) >= 0;
   }
 
   public static EidasLevel getOrDefault(String eidasLevelName, EidasLevel defaultEidasLevel) {

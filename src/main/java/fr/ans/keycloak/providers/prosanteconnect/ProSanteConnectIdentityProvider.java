@@ -195,10 +195,14 @@ final class ProSanteConnectIdentityProvider extends OIDCIdentityProvider
 			var expectedEidasLevel = getConfig().getEidasLevel();
 
 			if (pscEidasLevel == null) {
-				throw new IdentityBrokerException("The returned eIDAS level is not supported");
+				throw new IdentityBrokerException("The returned eIDAS level is not supported: " + acrClaim);
 			}
 			
 			logger.debugv("Expecting eIDAS level: {0}, actual: {1}", expectedEidasLevel, pscEidasLevel);
+
+			if (!pscEidasLevel.satisfies(expectedEidasLevel)) {
+				throw new IdentityBrokerException("The returned eIDAS level is insufficient: expected " + expectedEidasLevel + ", got " + pscEidasLevel);
+			}
 
 			return federatedIdentity;
 

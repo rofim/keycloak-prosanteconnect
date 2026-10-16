@@ -62,6 +62,18 @@ final class PSCFixture {
       .claim("amr", null)
       .build();*/
 
+  // Sent by PSC for a standard e-CPS authentication, despite its documentation stating acr is always eidas1
+  static final JWTClaimsSet PSC_EIDAS2_JWT = new JWTClaimsSet.Builder()
+      .subject("fakeSub")
+      .issuer("https://auth.esw.esante.gouv.fr/auth/realms/esante-wallet")
+      .audience(CLIENT_ID)
+      .claim("nonce", "randomNonce")
+      .claim("idp", "PSC")
+      .claim("acr", "eidas2")
+      .claim("auth_level", "1")
+      .claim("amr", null)
+      .build();
+
   static final JWTClaimsSet NO_EIDAS_LEVEL_JWT = new JWTClaimsSet.Builder()
       .subject("fakeSub")
       .issuer("https://auth.esw.esante.gouv.fr/auth/realms/esante-wallet")
@@ -77,7 +89,7 @@ final class PSCFixture {
       .audience(CLIENT_ID)
       .claim("nonce", "randomNonce")
       .claim("idp", "PSC")
-      .claim("acr", "eidas2")
+      .claim("acr", "eidas3")
       .claim("amr", null)
       .build();
 
